@@ -1,6 +1,8 @@
 package com.rome2rio.android.reactnativetouchthroughview;
 
 import com.facebook.react.views.view.ReactViewGroup;
+import com.wix.interactable.Interactable;
+import com.wix.interactable.InteractableView;
 
 import android.content.Context;
 import android.view.MotionEvent;
@@ -13,14 +15,21 @@ public class TouchThroughWrapper extends ReactViewGroup {
         super(context);
     }
 
+    private boolean isChildIsInteractable = false;
+
     @Override
     public boolean onInterceptTouchEvent(MotionEvent event) {
         // Recursively find out if an absolute x/y position is hitting a child view and stop event
         // propagation if a hit is found.
-        return this.isTouchingTouchThroughView(this, Math.round(event.getX()), Math.round(event.getY()));
+        final int actionMasked = event.getAction() & MotionEvent.ACTION_MASK;
+        if (actionMasked == MotionEvent.ACTION_DOWN) {
+            isChildIsInteractable = false;
+        }
+
+        return this.isTouchingTouchThroughView(this, Math.round(event.getX()), Math.round(event.getY()), event);
     }
 
-    private boolean isTouchingTouchThroughView(ViewGroup viewgroup, int x, int y) {
+    private boolean isTouchingTouchThroughView(ViewGroup viewgroup, int x, int y, MotionEvent event) {
         boolean isTouchingTouchThroughView = false;
 
         for(int i = 0; i < viewgroup.getChildCount(); i++) {
@@ -44,12 +53,21 @@ public class TouchThroughWrapper extends ReactViewGroup {
                 isTouchingTouchThroughView = bounds.contains(x, y);
             }
             else if (isViewGroup) {
-                isTouchingTouchThroughView = this.isTouchingTouchThroughView((ViewGroup) child, x, y);
+                isTouchingTouchThroughView = this.isTouchingTouchThroughView((ViewGroup) child, x, y, event);
+            }
+
+            final int actionMasked = event.getAction() & MotionEvent.ACTION_MASK;
+            if (actionMasked == MotionEvent.ACTION_DOWN) {
+                this.isChildIsInteractable = (this.isChildIsInteractable || child instanceof InteractableView) && !isTouchingTouchThroughView;
             }
 
             if (isTouchingTouchThroughView) {
                 break;
             }
+        }
+
+        if (this.isChildIsInteractable) {
+            return false;
         }
 
         return isTouchingTouchThroughView;
