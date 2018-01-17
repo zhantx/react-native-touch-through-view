@@ -44,5 +44,4 @@ android {
 
 dependencies {
   compile "com.facebook.react:react-native:+"
-  compile project(path: ':react-native-interactable')
 }
